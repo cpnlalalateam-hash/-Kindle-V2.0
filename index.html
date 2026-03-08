@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>LaLaLa Books V30 (Stable-Perfect)</title>
+    <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        body { background-color: #1a1a1a; color: #eee; font-family: "MS Mincho", serif; display: flex; height: 100vh; margin: 0; overflow: hidden; }
+        .editor-side { width: 35%; padding: 20px; background: #1a1a1a; border-right: 2px solid #444; overflow-y: auto; display: flex; flex-direction: column; box-sizing: border-box; }
+        .preview-side { width: 65%; background: #333; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        
+        .phone-frame { width: 320px; height: 569px; background: #000; border: 12px solid #222; border-radius: 40px; position: relative; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
+        #book-viewport { height: 100%; display: flex; flex-direction: row-reverse; transition: transform 0.3s ease-out; position: absolute; top: 0; right: 0; z-index: 10; }
+        .page { width: 320px; height: 100%; flex-shrink: 0; box-sizing: border-box; position: relative; }
+
+        /* 表紙：LaLaLaさん指定の「中央を空ける」黄金比率 */
+        .cover-page { background: #000; overflow: hidden; position: relative; }
+        #p-img { width: 100%; height: 100%; object-fit: cover; display: none; opacity: 0.9; position: absolute; top: 0; left: 0; z-index: 1; }
+        .p-text-layer { position: relative; z-index: 2; width: 100%; height: 100%; padding: 20px; }
+        
+        /* タイトル：右端からしっかり内側に寄せる */
+        #preview-title { 
+            position: absolute; top: 50px; right: 50px;
+            font-size: 1.8em; font-weight: bold; color: #fff; 
+            writing-mode: vertical-rl; text-orientation: upright; 
+            text-shadow: 2px 2px 12px #000;
+        }
+
+        /* あらすじ：真ん中ではなく「左端」に追い込み、中央の人物を空ける */
+        #preview-abstract { 
+            position: absolute; top: 50px; left: 30px; /* 真ん中から左端へ移動 */
+            width: 70px; /* 幅を絞ってスッキリさせる */
+            font-size: 0.85em; color: #fff; 
+            writing-mode: vertical-rl; text-orientation: upright; 
+            text-shadow: 2px 2px 8px #000;
+            max-height: calc(100% - 100px); overflow: hidden;
+        }
+
+        /* 内容ページ：完走対応エンジン */
+        .content-page { background: #fff; color: #000; padding: 40px 25px; writing-mode: vertical-rl; text-orientation: upright; font-size: 18px; line-height: 2.2; }
+        #book-content { white-space: pre-wrap; column-width: 270px; column-gap: 50px; height: 100%; }
+        .toc-link { color: #2980b9; text-decoration: underline; margin-left: 1.5em; cursor: pointer; display: block; line-height: 2.8; font-size: 0.9em; }
+
+        input, textarea { background: #222; color: #fff; border: 1px solid #444; padding: 12px; border-radius: 8px; margin-bottom: 10px; width: 100%; box-sizing: border-box; }
+        .btn-export { background: #27ae60; color: white; padding: 18px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; box-shadow: 0 4px #1e8449; margin-top: 10px; }
+        .nav-btn { background: #27ae60; color: white; border: none; padding: 12px 25px; border-radius: 30px; cursor: pointer; font-weight: bold; margin: 20px 10px; box-shadow: 0 4px #1e8449; }
+    </style>
+</head>
+<body>
+<div class="editor-side">
+    <h2 style="color:#27ae60; margin-top:0;">LaLaLa Books V30</h2>
+    <input type="file" id="image-input" accept="image/*" onchange="previewImage(this)">
+    <button class="btn-export" onclick="generateWord()">【Word射出】</button>
+    <label style="font-size:11px; color:#aaa;">▼ タイトル</label><input type="text" id="title-input" oninput="update()">
+    <label style="font-size:11px; color:#aaa;">▼ あらすじ</label><textarea id="abstract-input" style="height:60px;" oninput="update()"></textarea>
+    <label style="font-size:11px; color:#aaa;">▼ 本文</label><textarea id="body-input" style="flex:1;" oninput="update()"></textarea>
+</div>
+
+<div class="preview-side">
+    <div class="phone-frame">
+        <div id="book-viewport">
+            <div class="page cover-page">
+                <img id="p-img">
+                <div class="p-text-layer">
+                    <div id="preview-title"></div>
+                    <div id="preview-abstract"></div>
+                </div>
+            </div>
+            <div class="page content-page" style="background:#fafafa;"><div style="border-bottom:2px solid #333; font-weight:bold; margin-bottom:1em;">目次</div><div id="p-toc"></div></div>
+            <div class="page content-page" id="book-content"></div>
+        </div>
+    </div>
+    <div style="display:flex; align-items:center;">
+        <button class="nav-btn" onclick="movePage(1)">← 次へ</button>
+        <span id="page-info" style="color:#fff;">1 / 3</span>
+        <button class="nav-btn" onclick="movePage(-1)">前へ →</button>
+    </div>
+</div>
+
+<script>
+    let currentIdx = 0, totalP = 3;
+    function movePage(dir) {
+        currentIdx += dir; if(currentIdx < 0) currentIdx = 0; if(currentIdx >= totalP) currentIdx = totalP - 1;
+        document.getElementById('book-viewport').style.transform = `translateX(${currentIdx * 320}px)`;
+        document.getElementById('page-info').innerText = `${currentIdx + 1} / ${totalP}`;
+    }
+
+    function previewImage(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const img = document.getElementById('p-img');
+                img.src = e.target.result;
+                img.style.display = 'block';
+                update();
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function update() {
+        document.getElementById('preview-title').innerText = document.getElementById('title-input').value;
+        document.getElementById('preview-abstract').innerText = document.getElementById('abstract-input').value;
+        const bodyText = document.getElementById('body-input').value;
+        const content = document.getElementById('book-content');
+
+        const lines = bodyText.split('\n');
+        let tocHtml = ""; let cleanBody = "";
+
+        lines.forEach(l => {
+            if (l.match(/^(第.{1,3}話|第.{1,3}章|一、|二、|三、|【.*】)/)) {
+                tocHtml += `<div class="toc-link" onclick="currentIdx=1; movePage(0)">・${l}</div>`;
+                cleanBody += '\n' + l + '\n';
+            } else {
+                let line = l.replace(/([、。])\s+/g, '$1'); 
+                if (line.length > 0 && !/^[ 　「『（]/.test(line)) line = '　' + line;
+                cleanBody += line + '\n';
+            }
+        });
+        document.getElementById('p-toc').innerHTML = tocHtml;
+        content.innerText = cleanBody.replace(/…/g, "……");
+
+        setTimeout(() => {
+            const scrollW = content.scrollWidth;
+            totalP = 2 + Math.max(1, Math.ceil(scrollW / 320));
+            if (currentIdx >= totalP) currentIdx = totalP - 1;
+            document.getElementById('page-info').innerText = `${currentIdx + 1} / ${totalP}`;
+            document.getElementById('book-viewport').style.transform = `translateX(${currentIdx * 320}px)`;
+        }, 500);
+    }
+
+    async function generateWord() {
+        const title = document.getElementById('title-input').value || 'Untitled';
+        const abstract = document.getElementById('abstract-input').value || '';
+        const bodyText = document.getElementById('book-content').innerText || '';
+        const safeBody = bodyText.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "").replace(/\u3000/g, "　");
+        const paragraphs = [];
+        paragraphs.push(new docx.Paragraph({ text: title, heading: docx.HeadingLevel.TITLE, alignment: docx.AlignmentType.CENTER }));
+        paragraphs.push(new docx.Paragraph({ text: "著者：LaLaLa", alignment: docx.AlignmentType.CENTER }));
+        paragraphs.push(new docx.Paragraph({ text: "" }));
+        if (abstract) {
+            paragraphs.push(new docx.Paragraph({ text: "【あらすじ】", bold: true }));
+            abstract.split('\n').forEach(line => paragraphs.push(new docx.Paragraph({ text: line.trim() })));
+            paragraphs.push(new docx.Paragraph({ text: "" }));
+        }
+        safeBody.split('\n').forEach(line => {
+            paragraphs.push(new docx.Paragraph({ text: line, spacing: { line: 440 } }));
+        });
+        const doc = new docx.Document({ sections: [{ children: paragraphs }] });
+        docx.Packer.toBlob(doc).then(blob => {
+            saveAs(blob, `${title}.docx`);
+            alert("「□」のない完璧なWordを射出しました！");
+        });
+    }
+</script>
+</body>
+</html>
