@@ -7,9 +7,6 @@
 <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
-<!-- 追加：Wordプレビュー用 -->
-<script src="https://unpkg.com/docx-preview/dist/docx-preview.js"></script>
-
 </head>
 
 <body style="background:#1a1a1a; color:white; font-family:sans-serif; text-align:center; padding-top:50px;">
@@ -17,75 +14,79 @@
 <h2>🏛️ LaLaLa Books 目次ジャンプ・エンジン</h2>
 <p>本文を下に貼り付けて、ボタンを押してください。</p>
 
-<textarea id="body" style="width:80%; height:300px; background:#222; color:white; border:1px solid #444; padding:10px;">ここに本文を貼り付けてください</textarea>
-<br><br>
+<textarea id="body" style="width:80%; height:300px; background:#222; color:white; border:1px solid #444; padding:10px;">ここに本文を貼り付けてください</textarea><br><br>
 
 <button onclick="go()" style="background:#27ae60; color:white; padding:20px 40px; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">
 【目次付きWordをデスクトップへ射出】
 </button>
 
-<!-- 追加：プレビューエリア -->
-<div id="preview" style="width:80%; margin:auto; margin-top:40px; background:white; color:black; padding:30px;"></div>
-
 <script>
-
 async function go() {
 
 const bodyText = document.getElementById('body').value;
 
 const doc = new docx.Document({
-sections: [{
-children: [
+
+sections:[{
+
+children:[
 
 new docx.Paragraph({
-text: "逆転のラスト・ダイヤモンド",
-heading: docx.HeadingLevel.TITLE,
-alignment: docx.AlignmentType.CENTER
+text:"逆転のラスト・ダイヤモンド",
+heading:docx.HeadingLevel.TITLE,
+alignment:docx.AlignmentType.CENTER
 }),
 
 new docx.Paragraph({
-text: "著者：LaLaLa",
-alignment: docx.AlignmentType.CENTER
+text:"著者：LaLaLa",
+alignment:docx.AlignmentType.CENTER
 }),
 
 new docx.Paragraph({
-text: "",
-pageBreakBefore: true
+text:"",
+pageBreakBefore:true
+}),
+
+/* 目次 */
+new docx.Paragraph({
+text:"目次",
+heading:docx.HeadingLevel.HEADING_1,
+alignment:docx.AlignmentType.CENTER
 }),
 
 new docx.Paragraph({
-text: "目次",
-heading: docx.HeadingLevel.HEADING_1,
-alignment: docx.AlignmentType.CENTER
-}),
-
-new docx.Paragraph({
-children: [
+children:[
 new docx.InternalHyperlink({
-child: new docx.TextRun({
-text: "▶ 本編を読み始める",
-color: "0000FF",
-underline: true,
-size: 32
-}),
-anchor: "main"
+
+children:[
+new docx.TextRun({
+text:"▶ 本編を読み始める",
+color:"0000FF",
+underline:{},
+size:32
 })
 ],
-alignment: docx.AlignmentType.CENTER
+
+anchor:"main"
+
+})
+],
+alignment:docx.AlignmentType.CENTER
 }),
 
 new docx.Paragraph({
-text: "",
-pageBreakBefore: true
+text:"",
+pageBreakBefore:true
 }),
 
+/* 本編 */
 new docx.Paragraph({
-children: [
+children:[
 new docx.BookmarkStart("main"),
 new docx.TextRun({
-text: "【本編】",
-bold: true,
-size: 36
+text:"【本編】",
+bold:true,
+size:36
 }),
 new docx.BookmarkEnd("main")
 ]
@@ -93,33 +94,26 @@ new docx.BookmarkEnd("main")
 
 ...bodyText.split('\n').map(line =>
 new docx.Paragraph({
-text: line,
-spacing: { line: 440 }
+text:line,
+spacing:{line:440}
 })
 )
 
 ]
+
 }]
+
 });
 
-const blob = await docx.Packer.toBlob(doc);
+docx.Packer.toBlob(doc).then(blob => {
 
-saveAs(blob, "逆転のラスト・ダイヤモンド_目次付.docx");
+saveAs(blob,"逆転のラスト・ダイヤモンド_目次付.docx");
 
 alert("成功！読者が喜ぶWordが完成しました。");
 
-
-/* 追加：ブラウザプレビュー */
-
-const buffer = await blob.arrayBuffer();
-
-const preview = document.getElementById("preview");
-preview.innerHTML = "";
-
-docx.renderAsync(buffer, preview);
+});
 
 }
-
 </script>
 
 </body>
