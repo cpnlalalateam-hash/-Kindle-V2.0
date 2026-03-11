@@ -9,7 +9,6 @@
         :root { --accent: #27ae60; --bg: #0d0d0d; --pane-bg: #161616; --text: #e0e0e0; }
         body { background: var(--bg); color: var(--text); font-family: "MS Mincho", "Hiragino Mincho ProN", serif; display: flex; height: 100vh; margin: 0; overflow: hidden; }
         
-        /* 3カラムレイアウト */
         .pane { height: 100vh; display: flex; flex-direction: column; border-right: 1px solid #333; box-sizing: border-box; }
         #master-editor { width: 35%; background: var(--pane-bg); padding: 20px; overflow-y: auto; }
         #tate-preview { width: 35%; padding: 20px; align-items: center; overflow: hidden; }
@@ -19,24 +18,20 @@
         input, textarea { width: 100%; background: #222; border: 1px solid #444; color: #fff; padding: 12px; border-radius: 8px; box-sizing: border-box; font-size: 1em; }
         #main-input { height: 500px; line-height: 1.8; }
 
-        /* スマホフレーム */
         .phone-frame { background: white; border: 12px solid #222; border-radius: 40px; color: #333; box-shadow: 0 30px 60px rgba(0,0,0,0.8); position: relative; display: flex; flex-direction: column; overflow: hidden; }
         #frame-tate { width: 450px; height: 75vh; }
         #frame-yoko { width: 300px; height: 75vh; }
 
-        /* スクロール設定 */
         .content-area { padding: 30px; box-sizing: border-box; outline: none; }
         #view-tate { writing-mode: vertical-rl; height: 100%; width: 100%; overflow-x: auto; line-height: 2.2; font-size: 1.1em; }
         #view-yoko { writing-mode: horizontal-tb; width: 100%; overflow-y: auto; line-height: 1.9; font-size: 1em; text-align: justify; }
 
-        /* 表紙合成エリア */
         #cover-zone { width: 260px; height: 400px; position: relative; margin: 0 auto 20px; border-radius: 10px; overflow: hidden; background: #000; flex-shrink: 0; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         #c-img { width: 100%; height: 100%; object-fit: cover; }
         #c-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; box-sizing: border-box; background: rgba(0,0,0,0.2); z-index: 10; pointer-events: none; }
         #c-title { color: #fff; font-size: 1.4em; font-weight: bold; text-align: center; text-shadow: 2px 2px 8px #000; }
         #c-desc { color: #fff; font-size: 0.75em; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 5px; line-height: 1.4; }
 
-        /* 目次スタイル */
         .toc-container { background: #f0f0f0; padding: 10px; border-radius: 8px; margin-bottom: 20px; font-size: 0.8em; font-family: sans-serif; max-height: 150px; overflow-y: auto; }
         .toc-link { color: var(--accent); cursor: pointer; display: block; margin: 4px 0; text-decoration: none; border-bottom: 1px solid #ddd; }
         .toc-link:hover { background: #e0e0e0; }
@@ -57,7 +52,7 @@
     <textarea id="f-desc" oninput="sync('master')">銀座の夜から阿寒湖へ…。佐藤とレイナの新たな逆転劇。</textarea>
     <label>4. 本文 (全画面同期・直接編集可)</label>
     <textarea id="main-input" oninput="sync('master')" placeholder="ここに執筆してください..."></textarea>
-    <button class="btn-shoot" onclick="exportWord()">【目次付きWordを射出】</button>
+    <button class="btn-shoot" onclick="exportWord()">【目次・ナビゲーション付Word射出】</button>
 </div>
 
 <div id="tate-preview" class="pane">
@@ -90,15 +85,12 @@
         const title = el('f-title').value;
         const desc = el('f-desc').value;
 
-        // データソースの決定
         if (source === 'master') content = el('main-input').value;
         else if (source === 'tate') content = el('view-tate').innerText;
         else if (source === 'yoko') content = el('view-yoko').innerText;
 
-        // 全エリアへの反映（入力中以外の場所を更新）
         if (source !== 'master') el('main-input').value = content;
         
-        // プレビュー生成（目次抽出含む）
         const chapters = [];
         const lines = content.split('\n');
         const formattedBody = lines.map((line, i) => {
@@ -110,19 +102,15 @@
             return line;
         }).join('<br>');
 
-        // 目次HTMLの作成
         const tocHtml = chapters.map(ch => `<a class="toc-link" onclick="jump('${ch.id}')">▶ ${ch.title}</a>`).join('');
         el('toc-yoko').innerHTML = `<strong>自動生成目次</strong>${tocHtml}`;
 
-        // 各ビューの更新（innerHTML破壊を避けるため条件分岐）
         if (source !== 'tate') el('view-tate').innerHTML = `<h2 style="margin-left:40px">${title}</h2><hr>${formattedBody}`;
         if (source !== 'yoko') el('view-yoko').innerHTML = `<h3 style="text-align:center">${title}</h3><hr>${formattedBody}`;
         
-        // 表紙更新
         el('c-title').innerText = title;
         el('c-desc').innerText = desc;
 
-        // 画像処理
         if (source === 'image') {
             const file = el('f-cover').files[0];
             if (file) {
@@ -140,69 +128,46 @@
         if (targetYoko) targetYoko.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-  async function exportWord() {
+    async function exportWord() {
         const title = el('f-title').value;
         const content = el('main-input').value;
         const lines = content.split('\n');
-        
         const docChildren = [
-            // タイトルページ
             new docx.Paragraph({ text: title, heading: docx.HeadingLevel.TITLE, alignment: docx.AlignmentType.CENTER }),
             new docx.Paragraph({ text: "著者：LaLaLa", alignment: docx.AlignmentType.CENTER }),
             new docx.Paragraph({ text: "", pageBreakBefore: true }),
-
-            // 目次セクションの開始
             new docx.Paragraph({ text: "目次", heading: docx.HeadingLevel.HEADING_1 }),
         ];
-
-        // 章を抽出して目次リンクを作成
         const chapters = [];
         lines.forEach((line, i) => {
             if (line.includes('章') || (line.length > 0 && line.length < 15 && (lines[i-1] === '' || i === 0))) {
                 chapters.push({ title: line, bookmark: `ref_${i}` });
             }
         });
-
         chapters.forEach(ch => {
             docChildren.push(new docx.Paragraph({
-                children: [
-                    new docx.InternalHyperlink({
-                        child: new docx.TextRun({ text: `▶ ${ch.title}`, color: "0000FF", underline: true }),
-                        anchor: ch.bookmark
-                    })
-                ]
+                children: [new docx.InternalHyperlink({
+                    child: new docx.TextRun({ text: `▶ ${ch.title}`, color: "0000FF", underline: true }),
+                    anchor: ch.bookmark
+                })]
             }));
         });
-
         docChildren.push(new docx.Paragraph({ text: "", pageBreakBefore: true }));
-
-        // 本文の書き出し（見出しとブックマークを付与）
         lines.forEach((line, i) => {
             const isChapter = chapters.find(ch => ch.bookmark === `ref_${i}`);
-            
             if (isChapter) {
                 docChildren.push(new docx.Paragraph({
-                    text: line,
                     heading: docx.HeadingLevel.HEADING_1,
-                    children: [
-                        new docx.BookmarkStart(`ref_${i}`),
-                        new docx.TextRun({ text: line, bold: true }),
-                        new docx.BookmarkEnd(`ref_${i}`)
-                    ]
+                    children: [new docx.BookmarkStart(`ref_${i}`), new docx.TextRun({ text: line, bold: true }), new docx.BookmarkEnd(`ref_${i}`)]
                 }));
             } else {
-                docChildren.push(new docx.Paragraph({
-                    text: line,
-                    spacing: { line: 400 }, // 行間設定
-                    alignment: docx.AlignmentType.JUSTIFIED
-                }));
+                docChildren.push(new docx.Paragraph({ text: line, spacing: { line: 400 }, alignment: docx.AlignmentType.JUSTIFIED }));
             }
         });
-
         const doc = new docx.Document({ sections: [{ children: docChildren }] });
-        
-        docx.Packer.toBlob(doc).then(blob => {
-            saveAs(blob, `${title}.docx`);
-            alert("目次・ナビゲーション付きで射出完了しました。");
-        });
+        docx.Packer.toBlob(doc).then(blob => { saveAs(blob, `${title}.docx`); alert("ナビゲーション付Word射出完了。"); });
     }
+    sync('master');
+</script>
+</body>
+</html>
