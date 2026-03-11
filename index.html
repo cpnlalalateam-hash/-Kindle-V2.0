@@ -2,120 +2,161 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>LaLaLa Books - 阿寒湖編 Ultimate</title>
+    <title>LaLaLa Books Ultimate - 阿寒湖編</title>
     <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
-        body { background: #0a0a0a; color: #d0d0d0; font-family: "MS Mincho", "Hiragino Mincho ProN", serif; display: flex; height: 100vh; margin: 0; overflow: hidden; }
+        :root { --accent: #27ae60; --bg: #0d0d0d; --pane-bg: #161616; --text: #e0e0e0; }
+        body { background: var(--bg); color: var(--text); font-family: "MS Mincho", "Hiragino Mincho ProN", serif; display: flex; height: 100vh; margin: 0; overflow: hidden; }
         
-        /* 左：入力エリア */
-        #editor-pane { width: 40%; padding: 25px; overflow-y: auto; border-right: 2px solid #27ae60; background: #151515; box-sizing: border-box; }
-        
-        /* 右：プレビューエリア */
-        #preview-pane { width: 60%; background: #000; display: flex; flex-direction: row; justify-content: space-around; align-items: center; padding: 10px; overflow-x: auto; box-sizing: border-box; gap: 20px; }
-        
-        label { display: block; font-weight: bold; margin: 15px 0 5px; color: #27ae60; font-family: sans-serif; font-size: 0.9em; }
-        input, textarea { width: 100%; background: #222; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 8px; box-sizing: border-box; }
-        #main-body { height: 450px; line-height: 1.8; font-size: 1.1em; }
-        
-        .btn-shoot { background: #27ae60; color: white; padding: 15px; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; width: 100%; font-size: 1.1em; margin-top: 20px; transition: 0.3s; }
-        
+        /* 3カラムレイアウト */
+        .pane { height: 100vh; display: flex; flex-direction: column; border-right: 1px solid #333; box-sizing: border-box; }
+        #master-editor { width: 35%; background: var(--pane-bg); padding: 20px; overflow-y: auto; }
+        #tate-preview { width: 35%; padding: 20px; align-items: center; overflow: hidden; }
+        #yoko-preview { width: 30%; padding: 20px; align-items: center; overflow: hidden; border-right: none; }
+
+        label { display: block; font-weight: bold; margin: 15px 0 5px; color: var(--accent); font-family: sans-serif; font-size: 0.85em; }
+        input, textarea { width: 100%; background: #222; border: 1px solid #444; color: #fff; padding: 12px; border-radius: 8px; box-sizing: border-box; font-size: 1em; }
+        #main-input { height: 500px; line-height: 1.8; }
+
         /* スマホフレーム */
-        .phone-frame { background: white; border: 10px solid #222; border-radius: 35px; color: #222; box-shadow: 0 20px 50px rgba(0,0,0,0.8); position: relative; overflow: hidden; flex-shrink: 0; }
-        .content-scroll { padding: 25px; height: 100%; overflow-y: auto; box-sizing: border-box; }
+        .phone-frame { background: white; border: 12px solid #222; border-radius: 40px; color: #333; box-shadow: 0 30px 60px rgba(0,0,0,0.8); position: relative; display: flex; flex-direction: column; overflow: hidden; }
+        #frame-tate { width: 450px; height: 75vh; }
+        #frame-yoko { width: 300px; height: 75vh; }
 
-        /* 横書き：幅を絞って読ませる */
-        #phone-yoko { width: 300px; height: 580px; }
-        #display-yoko { writing-mode: horizontal-tb; line-height: 1.9; font-size: 0.95em; text-align: justify; }
+        /* スクロール設定 */
+        .content-area { padding: 30px; box-sizing: border-box; outline: none; }
+        #view-tate { writing-mode: vertical-rl; height: 100%; width: 100%; overflow-x: auto; line-height: 2.2; font-size: 1.1em; }
+        #view-yoko { writing-mode: horizontal-tb; width: 100%; overflow-y: auto; line-height: 1.9; font-size: 1em; text-align: justify; }
 
-        /* 縦書き：本来の情緒 */
-        #phone-tate { width: 420px; height: 580px; }
-        #display-tate { writing-mode: vertical-rl; line-height: 2.2; font-size: 1em; padding: 40px 30px; }
+        /* 表紙合成エリア */
+        #cover-zone { width: 260px; height: 400px; position: relative; margin: 0 auto 20px; border-radius: 10px; overflow: hidden; background: #000; flex-shrink: 0; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        #c-img { width: 100%; height: 100%; object-fit: cover; }
+        #c-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; box-sizing: border-box; background: rgba(0,0,0,0.2); z-index: 10; pointer-events: none; }
+        #c-title { color: #fff; font-size: 1.4em; font-weight: bold; text-align: center; text-shadow: 2px 2px 8px #000; }
+        #c-desc { color: #fff; font-size: 0.75em; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 5px; line-height: 1.4; }
 
         /* 目次スタイル */
-        .toc-box { background: #f9f9f9; padding: 10px; border-radius: 5px; border: 1px solid #eee; font-size: 0.85em; margin: 15px 0; font-family: sans-serif; }
-        .toc-item { color: #27ae60; text-decoration: underline; cursor: pointer; margin-bottom: 5px; display: block; }
+        .toc-container { background: #f0f0f0; padding: 10px; border-radius: 8px; margin-bottom: 20px; font-size: 0.8em; font-family: sans-serif; max-height: 150px; overflow-y: auto; }
+        .toc-link { color: var(--accent); cursor: pointer; display: block; margin: 4px 0; text-decoration: none; border-bottom: 1px solid #ddd; }
+        .toc-link:hover { background: #e0e0e0; }
 
-        /* 表紙合成（チェック用） */
-        #cover-preview { width: 280px; height: 450px; position: relative; border-radius: 10px; overflow: hidden; background: #333; flex-shrink: 0; }
-        #c-img { width: 100%; height: 100%; object-fit: cover; }
-        #c-title { position: absolute; top: 15%; width: 100%; text-align: center; color: #fff; font-size: 1.5em; font-weight: bold; text-shadow: 2px 2px 10px #000; padding: 0 10px; box-sizing: border-box; }
+        .btn-shoot { background: var(--accent); color: white; padding: 18px; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; width: 100%; font-size: 1.1em; margin-top: 20px; }
+        h3 { margin: 0 0 10px; font-family: sans-serif; font-size: 1em; color: #888; text-align: center; }
     </style>
 </head>
 <body>
 
-<div id="editor-pane">
-    <h2 style="color:#27ae60; margin:0;">🏛️ 阿寒湖編・統合エンジン</h2>
-    <label>1. 表紙(チェック用)</label>
-    <input type="file" id="f-cover" accept="image/*" onchange="update()">
+<div id="master-editor" class="pane">
+    <h2 style="color:var(--accent); margin:0;">🏛️ FINAL ENGINE</h2>
+    <label>1. 表紙画像(チェック用)</label>
+    <input type="file" id="f-cover" accept="image/*" onchange="sync('image')">
     <label>2. タイトル</label>
-    <input type="text" id="f-title" value="逆転のラスト・ダイヤモンド (阿寒湖編)" oninput="update()">
+    <input type="text" id="f-title" value="逆転のラスト・ダイヤモンド (阿寒湖編)" oninput="sync('master')">
     <label>3. あらすじ</label>
-    <textarea id="f-desc" oninput="update()">銀座の夜から阿寒湖へ…。佐藤とレイナの新たな逆転劇。</textarea>
-    <label>4. 本文 (一行空けで新章と認識)</label>
-    <textarea id="f-body" oninput="update()" placeholder="ここに小説を貼り付けてください..."></textarea>
-    <button class="btn-shoot" onclick="shootWord()">【目次付きWordを射出】</button>
+    <textarea id="f-desc" oninput="sync('master')">銀座の夜から阿寒湖へ…。佐藤とレイナの新たな逆転劇。</textarea>
+    <label>4. 本文 (全画面同期・直接編集可)</label>
+    <textarea id="main-input" oninput="sync('master')" placeholder="ここに執筆してください..."></textarea>
+    <button class="btn-shoot" onclick="exportWord()">【目次付きWordを射出】</button>
 </div>
 
-<div id="preview-pane">
-    <div id="cover-preview">
-        <img id="c-img" src="">
-        <div id="c-title"></div>
+<div id="tate-preview" class="pane">
+    <h3>縦書き：情緒・構成チェック</h3>
+    <div id="cover-zone">
+        <img id="c-img">
+        <div id="c-overlay">
+            <div id="c-title"></div>
+            <div id="c-desc"></div>
+        </div>
     </div>
-
-    <div class="phone-frame" id="phone-tate">
-        <div id="display-tate" class="content-scroll"></div>
+    <div class="phone-frame" id="frame-tate">
+        <div id="view-tate" class="content-area" contenteditable="true" oninput="sync('tate')"></div>
     </div>
+</div>
 
-    <div class="phone-frame" id="phone-yoko">
-        <div id="display-yoko" class="content-scroll"></div>
+<div id="yoko-preview" class="pane">
+    <h3>横書き：テンポ・可読性チェック</h3>
+    <div id="toc-yoko" class="toc-container"></div>
+    <div class="phone-frame" id="frame-yoko">
+        <div id="view-yoko" class="content-area" contenteditable="true" oninput="sync('yoko')"></div>
     </div>
 </div>
 
 <script>
-    function update() {
-        const title = document.getElementById('f-title').value;
-        const body = document.getElementById('f-body').value;
+    const el = (id) => document.getElementById(id);
+
+    function sync(source) {
+        let content = "";
+        const title = el('f-title').value;
+        const desc = el('f-desc').value;
+
+        // データソースの決定
+        if (source === 'master') content = el('main-input').value;
+        else if (source === 'tate') content = el('view-tate').innerText;
+        else if (source === 'yoko') content = el('view-yoko').innerText;
+
+        // 全エリアへの反映（入力中以外の場所を更新）
+        if (source !== 'master') el('main-input').value = content;
         
-        // 目次自動生成（空行後の「第○章」などを想定）
-        let tocHtml = '<div class="toc-box"><strong>目次 (プレビュー)</strong>';
-        const lines = body.split('\n');
-        lines.forEach((line, i) => {
-            if(line.includes('章') || (line.length > 0 && line.length < 15 && lines[i-1] === '')) {
-                tocHtml += `<span class="toc-item">▶ ${line}</span>`;
+        // プレビュー生成（目次抽出含む）
+        const chapters = [];
+        const lines = content.split('\n');
+        const formattedBody = lines.map((line, i) => {
+            if (line.includes('章') || (line.length > 0 && line.length < 15 && (lines[i-1] === '' || i === 0))) {
+                const id = `ch-${i}`;
+                chapters.push({ title: line, id: id });
+                return `<b id="${id}" style="color:var(--accent); font-size:1.2em;">${line}</b>`;
             }
-        });
-        tocHtml += '</div>';
+            return line;
+        }).join('<br>');
 
-        // 表紙・縦・横 反映
-        document.getElementById('c-title').innerText = title;
-        const fullContent = `<h3>${title}</h3>${tocHtml}<hr>${body.replace(/\n/g, '<br>')}`;
-        document.getElementById('display-yoko').innerHTML = fullContent;
-        document.getElementById('display-tate').innerHTML = `<h2 style="margin-left:20px">${title}</h2><hr>${body.replace(/\n/g, '<br>')}`;
+        // 目次HTMLの作成
+        const tocHtml = chapters.map(ch => `<a class="toc-link" onclick="jump('${ch.id}')">▶ ${ch.title}</a>`).join('');
+        el('toc-yoko').innerHTML = `<strong>自動生成目次</strong>${tocHtml}`;
 
-        const file = document.getElementById('f-cover').files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => { document.getElementById('c-img').src = e.target.result; };
-            reader.readAsDataURL(file);
+        // 各ビューの更新（innerHTML破壊を避けるため条件分岐）
+        if (source !== 'tate') el('view-tate').innerHTML = `<h2 style="margin-left:40px">${title}</h2><hr>${formattedBody}`;
+        if (source !== 'yoko') el('view-yoko').innerHTML = `<h3 style="text-align:center">${title}</h3><hr>${formattedBody}`;
+        
+        // 表紙更新
+        el('c-title').innerText = title;
+        el('c-desc').innerText = desc;
+
+        // 画像処理
+        if (source === 'image') {
+            const file = el('f-cover').files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => el('c-img').src = e.target.result;
+                reader.readAsDataURL(file);
+            }
         }
     }
 
-    async function shootWord() {
-        const title = document.getElementById('f-title').value;
-        const body = document.getElementById('f-body').value;
+    function jump(id) {
+        const targetTate = el('view-tate').querySelector(`#${id}`);
+        const targetYoko = el('view-yoko').querySelector(`#${id}`);
+        if (targetTate) targetTate.scrollIntoView({ behavior: 'smooth', inline: 'start' });
+        if (targetYoko) targetYoko.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    async function exportWord() {
+        const title = el('f-title').value;
+        const content = el('main-input').value;
         const doc = new docx.Document({
             sections: [{
                 children: [
                     new docx.Paragraph({ text: title, heading: docx.HeadingLevel.TITLE, alignment: docx.AlignmentType.CENTER }),
                     new docx.Paragraph({ text: "", pageBreakBefore: true }),
-                    new docx.Paragraph({ text: "【本文】", bold: true }),
-                    ...body.split('\n').map(l => new docx.Paragraph({ text: l, spacing: { line: 400 } }))
+                    ...content.split('\n').map(l => new docx.Paragraph({ text: l, spacing: { line: 400 } }))
                 ]
             }]
         });
-        docx.Packer.toBlob(doc).then(blob => { saveAs(blob, title + ".docx"); alert("射出完了！"); });
+        docx.Packer.toBlob(doc).then(blob => { saveAs(blob, `${title}.docx`); alert("射出完了。"); });
     }
+    
+    // 初期化
+    sync('master');
 </script>
 </body>
 </html>
