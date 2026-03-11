@@ -22,41 +22,38 @@
         #frame-tate { width: 450px; height: 75vh; }
         #frame-yoko { width: 300px; height: 75vh; }
 
-        .content-area { padding: 30px; box-sizing: border-box; outline: none; }
+        .content-area { padding: 30px; box-sizing: border-box; outline: none; min-height: 100%; }
         #view-tate { writing-mode: vertical-rl; height: 100%; width: 100%; overflow-x: auto; line-height: 2.2; font-size: 1.1em; }
         #view-yoko { writing-mode: horizontal-tb; width: 100%; overflow-y: auto; line-height: 1.9; font-size: 1em; text-align: justify; }
 
-        #cover-zone { width: 260px; height: 400px; position: relative; margin: 0 auto 20px; border-radius: 10px; overflow: hidden; background: #000; flex-shrink: 0; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        #cover-zone { width: 260px; height: 400px; position: relative; margin: 0 auto 20px; border-radius: 10px; overflow: hidden; background: #000; flex-shrink: 0; }
         #c-img { width: 100%; height: 100%; object-fit: cover; }
         #c-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; box-sizing: border-box; background: rgba(0,0,0,0.2); z-index: 10; pointer-events: none; }
         #c-title { color: #fff; font-size: 1.4em; font-weight: bold; text-align: center; text-shadow: 2px 2px 8px #000; }
         #c-desc { color: #fff; font-size: 0.75em; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 5px; line-height: 1.4; }
 
-        .toc-container { background: #f0f0f0; padding: 10px; border-radius: 8px; margin-bottom: 20px; font-size: 0.8em; font-family: sans-serif; max-height: 150px; overflow-y: auto; }
-        .toc-link { color: var(--accent); cursor: pointer; display: block; margin: 4px 0; text-decoration: none; border-bottom: 1px solid #ddd; }
-        .toc-link:hover { background: #e0e0e0; }
+        .toc-container { background: #f0f0f0; padding: 10px; border-radius: 8px; margin-bottom: 20px; font-size: 0.8em; font-family: sans-serif; max-height: 150px; overflow-y: auto; color: #333; }
+        .toc-link { color: var(--accent); cursor: pointer; display: block; margin: 4px 0; text-decoration: underline; }
 
         .btn-shoot { background: var(--accent); color: white; padding: 18px; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; width: 100%; font-size: 1.1em; margin-top: 20px; }
-        h3 { margin: 0 0 10px; font-family: sans-serif; font-size: 1em; color: #888; text-align: center; }
     </style>
 </head>
 <body>
 
 <div id="master-editor" class="pane">
     <h2 style="color:var(--accent); margin:0;">🏛️ FINAL ENGINE</h2>
-    <label>1. 表紙画像(チェック用)</label>
+    <label>1. 表紙画像</label>
     <input type="file" id="f-cover" accept="image/*" onchange="sync('image')">
     <label>2. タイトル</label>
     <input type="text" id="f-title" value="逆転のラスト・ダイヤモンド (阿寒湖編)" oninput="sync('master')">
     <label>3. あらすじ</label>
     <textarea id="f-desc" oninput="sync('master')">銀座の夜から阿寒湖へ…。佐藤とレイナの新たな逆転劇。</textarea>
-    <label>4. 本文 (全画面同期・直接編集可)</label>
+    <label>4. 本文 (全同期・直接編集可)</label>
     <textarea id="main-input" oninput="sync('master')" placeholder="ここに執筆してください..."></textarea>
-    <button class="btn-shoot" onclick="exportWord()">【目次・ナビゲーション付Word射出】</button>
+    <button class="btn-shoot" onclick="exportWord()">【Word射出】</button>
 </div>
 
 <div id="tate-preview" class="pane">
-    <h3>縦書き：情緒・構成チェック</h3>
     <div id="cover-zone">
         <img id="c-img">
         <div id="c-overlay">
@@ -70,7 +67,6 @@
 </div>
 
 <div id="yoko-preview" class="pane">
-    <h3>横書き：テンポ・可読性チェック</h3>
     <div id="toc-yoko" class="toc-container"></div>
     <div class="phone-frame" id="frame-yoko">
         <div id="view-yoko" class="content-area" contenteditable="true" oninput="sync('yoko')"></div>
@@ -85,15 +81,17 @@
         const title = el('f-title').value;
         const desc = el('f-desc').value;
 
+        // データソース取得
         if (source === 'master') content = el('main-input').value;
         else if (source === 'tate') content = el('view-tate').innerText;
         else if (source === 'yoko') content = el('view-yoko').innerText;
 
+        // 全画面に反映
         if (source !== 'master') el('main-input').value = content;
         
-        const chapters = [];
         const lines = content.split('\n');
-        const formattedBody = lines.map((line, i) => {
+        let chapters = [];
+        let htmlBody = lines.map((line, i) => {
             if (line.includes('章') || (line.length > 0 && line.length < 15 && (lines[i-1] === '' || i === 0))) {
                 const id = `ch-${i}`;
                 chapters.push({ title: line, id: id });
@@ -102,11 +100,12 @@
             return line;
         }).join('<br>');
 
-        const tocHtml = chapters.map(ch => `<a class="toc-link" onclick="jump('${ch.id}')">▶ ${ch.title}</a>`).join('');
-        el('toc-yoko').innerHTML = `<strong>自動生成目次</strong>${tocHtml}`;
+        // 目次生成
+        el('toc-yoko').innerHTML = `<strong>目次</strong>` + chapters.map(ch => `<a class="toc-link" onclick="jump('${ch.id}')">▶ ${ch.title}</a>`).join('');
 
-        if (source !== 'tate') el('view-tate').innerHTML = `<h2 style="margin-left:40px">${title}</h2><hr>${formattedBody}`;
-        if (source !== 'yoko') el('view-yoko').innerHTML = `<h3 style="text-align:center">${title}</h3><hr>${formattedBody}`;
+        // プレビュー表示（表示が消えないよう確実にセット）
+        if (source !== 'tate') el('view-tate').innerHTML = `<h2 style="margin-left:40px">${title}</h2><hr>${htmlBody}`;
+        if (source !== 'yoko') el('view-yoko').innerHTML = `<h3 style="text-align:center">${title}</h3><hr>${htmlBody}`;
         
         el('c-title').innerText = title;
         el('c-desc').innerText = desc;
@@ -122,28 +121,29 @@
     }
 
     function jump(id) {
-        const targetTate = el('view-tate').querySelector(`#${id}`);
-        const targetYoko = el('view-yoko').querySelector(`#${id}`);
-        if (targetTate) targetTate.scrollIntoView({ behavior: 'smooth', inline: 'start' });
-        if (targetYoko) targetYoko.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const t = el('view-tate').querySelector(`#${id}`);
+        const y = el('view-yoko').querySelector(`#${id}`);
+        if (t) t.scrollIntoView({ behavior: 'smooth', inline: 'start' });
+        if (y) y.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     async function exportWord() {
         const title = el('f-title').value;
         const content = el('main-input').value;
         const lines = content.split('\n');
-        const docChildren = [
+        let docChildren = [
             new docx.Paragraph({ text: title, heading: docx.HeadingLevel.TITLE, alignment: docx.AlignmentType.CENTER }),
-            new docx.Paragraph({ text: "著者：LaLaLa", alignment: docx.AlignmentType.CENTER }),
             new docx.Paragraph({ text: "", pageBreakBefore: true }),
             new docx.Paragraph({ text: "目次", heading: docx.HeadingLevel.HEADING_1 }),
         ];
-        const chapters = [];
+        
+        let chapters = [];
         lines.forEach((line, i) => {
             if (line.includes('章') || (line.length > 0 && line.length < 15 && (lines[i-1] === '' || i === 0))) {
                 chapters.push({ title: line, bookmark: `ref_${i}` });
             }
         });
+
         chapters.forEach(ch => {
             docChildren.push(new docx.Paragraph({
                 children: [new docx.InternalHyperlink({
@@ -152,20 +152,23 @@
                 })]
             }));
         });
+
         docChildren.push(new docx.Paragraph({ text: "", pageBreakBefore: true }));
+
         lines.forEach((line, i) => {
-            const isChapter = chapters.find(ch => ch.bookmark === `ref_${i}`);
-            if (isChapter) {
+            const ch = chapters.find(c => c.bookmark === `ref_${i}`);
+            if (ch) {
                 docChildren.push(new docx.Paragraph({
                     heading: docx.HeadingLevel.HEADING_1,
-                    children: [new docx.BookmarkStart(`ref_${i}`), new docx.TextRun({ text: line, bold: true }), new docx.BookmarkEnd(`ref_${i}`)]
+                    children: [new docx.BookmarkStart(ch.bookmark), new docx.TextRun({ text: line, bold: true }), new docx.BookmarkEnd(ch.bookmark)]
                 }));
             } else {
-                docChildren.push(new docx.Paragraph({ text: line, spacing: { line: 400 }, alignment: docx.AlignmentType.JUSTIFIED }));
+                docChildren.push(new docx.Paragraph({ text: line, spacing: { line: 400 } }));
             }
         });
+
         const doc = new docx.Document({ sections: [{ children: docChildren }] });
-        docx.Packer.toBlob(doc).then(blob => { saveAs(blob, `${title}.docx`); alert("ナビゲーション付Word射出完了。"); });
+        docx.Packer.toBlob(doc).then(blob => { saveAs(blob, `${title}.docx`); alert("Word射出完了。"); });
     }
     sync('master');
 </script>
