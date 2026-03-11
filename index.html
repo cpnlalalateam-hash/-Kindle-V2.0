@@ -2,94 +2,71 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>LaLaLa Ultimate Editor - 阿寒湖編</title>
+    <title>LaLaLa Books - 阿寒湖編 Ultimate</title>
     <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
-        body { background: #0f0f0f; color: #e0e0e0; font-family: "MS Mincho", "Hiragino Mincho ProN", serif; display: flex; height: 100vh; margin: 0; overflow: hidden; }
+        body { background: #0a0a0a; color: #d0d0d0; font-family: "MS Mincho", "Hiragino Mincho ProN", serif; display: flex; height: 100vh; margin: 0; overflow: hidden; }
         
         /* 左：入力エリア */
-        #editor-pane { width: 45%; padding: 25px; overflow-y: auto; border-right: 3px solid #27ae60; box-sizing: border-box; background: #1a1a1a; }
+        #editor-pane { width: 40%; padding: 25px; overflow-y: auto; border-right: 2px solid #27ae60; background: #151515; box-sizing: border-box; }
         
-        /* 右：二刀流プレビューエリア */
-        #preview-pane { width: 55%; background: #121212; display: flex; flex-direction: column; align-items: center; padding: 20px; overflow-y: auto; box-sizing: border-box; gap: 30px; }
+        /* 右：プレビューエリア */
+        #preview-pane { width: 60%; background: #000; display: flex; flex-direction: row; justify-content: space-around; align-items: center; padding: 10px; overflow-x: auto; box-sizing: border-box; gap: 20px; }
         
-        .input-group { margin-bottom: 15px; }
-        label { display: block; font-weight: bold; margin-bottom: 8px; color: #27ae60; font-family: sans-serif; }
-        input, textarea { width: 100%; background: #222; border: 1px solid #444; color: white; padding: 12px; border-radius: 8px; box-sizing: border-box; font-size: 1.1em; }
-        textarea { line-height: 1.8; }
-        #main-body { height: 400px; font-family: serif; }
+        label { display: block; font-weight: bold; margin: 15px 0 5px; color: #27ae60; font-family: sans-serif; font-size: 0.9em; }
+        input, textarea { width: 100%; background: #222; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 8px; box-sizing: border-box; }
+        #main-body { height: 450px; line-height: 1.8; font-size: 1.1em; }
         
-        .btn-shoot { background: linear-gradient(135deg, #27ae60, #2ecc71); color: white; padding: 18px; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; width: 100%; font-size: 1.2em; margin-top: 15px; box-shadow: 0 4px 15px rgba(39,174,96,0.3); }
+        .btn-shoot { background: #27ae60; color: white; padding: 15px; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; width: 100%; font-size: 1.1em; margin-top: 20px; transition: 0.3s; }
+        
+        /* スマホフレーム */
+        .phone-frame { background: white; border: 10px solid #222; border-radius: 35px; color: #222; box-shadow: 0 20px 50px rgba(0,0,0,0.8); position: relative; overflow: hidden; flex-shrink: 0; }
+        .content-scroll { padding: 25px; height: 100%; overflow-y: auto; box-sizing: border-box; }
 
-        /* スマホ型フレーム共通 */
-        .phone-frame { background: white; border: 12px solid #333; border-radius: 35px; color: #333; box-shadow: 0 20px 60px rgba(0,0,0,0.6); position: relative; flex-shrink: 0; }
-        
-        /* 表紙プレビュー（文字合成） */
-        #cover-preview-container { width: 300px; height: 480px; position: relative; overflow: hidden; border-radius: 5px; background: #000; }
-        #cover-img { width: 100%; height: 100%; object-fit: cover; }
-        #cover-title-overlay { position: absolute; top: 15%; width: 100%; text-align: center; color: white; font-size: 1.8em; font-weight: bold; text-shadow: 2px 2px 8px rgba(0,0,0,0.8); padding: 0 10px; box-sizing: border-box; }
-        #cover-desc-overlay { position: absolute; bottom: 10%; width: 100%; padding: 15px; color: white; background: rgba(0,0,0,0.5); font-size: 0.8em; line-height: 1.4; box-sizing: border-box; }
+        /* 横書き：幅を絞って読ませる */
+        #phone-yoko { width: 300px; height: 580px; }
+        #display-yoko { writing-mode: horizontal-tb; line-height: 1.9; font-size: 0.95em; text-align: justify; }
 
-        /* 縦書き・横書きプレビュー */
-        .preview-label { color: #aaa; font-size: 0.9em; margin-bottom: 5px; font-family: sans-serif; }
-        .content-scroll { padding: 25px; height: 100%; box-sizing: border-box; overflow: auto; }
-        
-        /* 横書きスマホ */
-        #phone-yoko { width: 320px; height: 550px; }
-        #display-yoko { writing-mode: horizontal-tb; }
+        /* 縦書き：本来の情緒 */
+        #phone-tate { width: 420px; height: 580px; }
+        #display-tate { writing-mode: vertical-rl; line-height: 2.2; font-size: 1em; padding: 40px 30px; }
 
-        /* 縦書きスマホ（真骨頂） */
-        #phone-tate { width: 450px; height: 550px; }
-        #display-tate { writing-mode: vertical-rl; height: 100%; padding: 30px 40px; }
-        
-        hr { border: 0; border-top: 1px dashed #ccc; margin: 15px 0; }
+        /* 目次スタイル */
+        .toc-box { background: #f9f9f9; padding: 10px; border-radius: 5px; border: 1px solid #eee; font-size: 0.85em; margin: 15px 0; font-family: sans-serif; }
+        .toc-item { color: #27ae60; text-decoration: underline; cursor: pointer; margin-bottom: 5px; display: block; }
+
+        /* 表紙合成（チェック用） */
+        #cover-preview { width: 280px; height: 450px; position: relative; border-radius: 10px; overflow: hidden; background: #333; flex-shrink: 0; }
+        #c-img { width: 100%; height: 100%; object-fit: cover; }
+        #c-title { position: absolute; top: 15%; width: 100%; text-align: center; color: #fff; font-size: 1.5em; font-weight: bold; text-shadow: 2px 2px 10px #000; padding: 0 10px; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
 <div id="editor-pane">
-    <h2 style="color:#27ae60; border-bottom:1px solid #333; padding-bottom:10px;">🏛️ 阿寒湖編・二刀流統合エンジン</h2>
-    
-    <div class="input-group">
-        <label>1. 表紙画像を読み込む</label>
-        <input type="file" id="cover-input" accept="image/*" onchange="update()">
-    </div>
-
-    <div class="input-group">
-        <label>2. タイトル</label>
-        <input type="text" id="in-title" value="逆転のラスト・ダイヤモンド (阿寒湖編)" oninput="update()">
-    </div>
-
-    <div class="input-group">
-        <label>3. あらすじ（表紙にも反映）</label>
-        <textarea id="in-desc" oninput="update()">銀座の夜から阿寒湖へ…。佐藤とレイナの新たな逆転劇が始まる。</textarea>
-    </div>
-
-    <div class="input-group">
-        <label>4. 本文（縦書き・横書き両方に反映）</label>
-        <textarea id="main-body" oninput="update()" placeholder="ここに小説を貼り付けてください..."></textarea>
-    </div>
-
+    <h2 style="color:#27ae60; margin:0;">🏛️ 阿寒湖編・統合エンジン</h2>
+    <label>1. 表紙(チェック用)</label>
+    <input type="file" id="f-cover" accept="image/*" onchange="update()">
+    <label>2. タイトル</label>
+    <input type="text" id="f-title" value="逆転のラスト・ダイヤモンド (阿寒湖編)" oninput="update()">
+    <label>3. あらすじ</label>
+    <textarea id="f-desc" oninput="update()">銀座の夜から阿寒湖へ…。佐藤とレイナの新たな逆転劇。</textarea>
+    <label>4. 本文 (一行空けで新章と認識)</label>
+    <textarea id="f-body" oninput="update()" placeholder="ここに小説を貼り付けてください..."></textarea>
     <button class="btn-shoot" onclick="shootWord()">【目次付きWordを射出】</button>
 </div>
 
 <div id="preview-pane">
-    <div class="preview-label">▼ 表紙：タイトル＆あらすじ合成イメージ</div>
-    <div class="phone-frame">
-        <div id="cover-preview-container">
-            <img id="cover-img" src="">
-            <div id="cover-title-overlay"></div>
-            <div id="cover-desc-overlay"></div>
-        </div>
+    <div id="cover-preview">
+        <img id="c-img" src="">
+        <div id="c-title"></div>
     </div>
 
-    <div class="preview-label">▼ 縦書きチェック（電子書籍スタイル）</div>
     <div class="phone-frame" id="phone-tate">
         <div id="display-tate" class="content-scroll"></div>
     </div>
 
-    <div class="preview-label">▼ 横書きチェック（スマホアプリスタイル）</div>
     <div class="phone-frame" id="phone-yoko">
         <div id="display-yoko" class="content-scroll"></div>
     </div>
@@ -97,45 +74,47 @@
 
 <script>
     function update() {
-        const title = document.getElementById('in-title').value;
-        const desc = document.getElementById('in-desc').value;
-        const body = document.getElementById('main-body').value;
-
-        // 表紙反映
-        document.getElementById('cover-title-overlay').innerText = title;
-        document.getElementById('cover-desc-overlay').innerText = desc;
+        const title = document.getElementById('f-title').value;
+        const body = document.getElementById('f-body').value;
         
-        // 縦横反映
-        document.getElementById('display-yoko').innerHTML = `<h3 style="text-align:center">${title}</h3><hr>${body}`;
-        document.getElementById('display-tate').innerHTML = `<h2 style="margin-left:30px">${title}</h2><hr>${body}`;
+        // 目次自動生成（空行後の「第○章」などを想定）
+        let tocHtml = '<div class="toc-box"><strong>目次 (プレビュー)</strong>';
+        const lines = body.split('\n');
+        lines.forEach((line, i) => {
+            if(line.includes('章') || (line.length > 0 && line.length < 15 && lines[i-1] === '')) {
+                tocHtml += `<span class="toc-item">▶ ${line}</span>`;
+            }
+        });
+        tocHtml += '</div>';
 
-        // 画像処理
-        const file = document.getElementById('cover-input').files[0];
+        // 表紙・縦・横 反映
+        document.getElementById('c-title').innerText = title;
+        const fullContent = `<h3>${title}</h3>${tocHtml}<hr>${body.replace(/\n/g, '<br>')}`;
+        document.getElementById('display-yoko').innerHTML = fullContent;
+        document.getElementById('display-tate').innerHTML = `<h2 style="margin-left:20px">${title}</h2><hr>${body.replace(/\n/g, '<br>')}`;
+
+        const file = document.getElementById('f-cover').files[0];
         if (file) {
             const reader = new FileReader();
-            reader.onload = (e) => { document.getElementById('cover-img').src = e.target.result; };
+            reader.onload = (e) => { document.getElementById('c-img').src = e.target.result; };
             reader.readAsDataURL(file);
         }
     }
 
     async function shootWord() {
-        const title = document.getElementById('in-title').value;
-        const bodyText = document.getElementById('main-body').value;
+        const title = document.getElementById('f-title').value;
+        const body = document.getElementById('f-body').value;
         const doc = new docx.Document({
             sections: [{
                 children: [
                     new docx.Paragraph({ text: title, heading: docx.HeadingLevel.TITLE, alignment: docx.AlignmentType.CENTER }),
-                    new docx.Paragraph({ text: "著者：LaLaLa", alignment: docx.AlignmentType.CENTER }),
                     new docx.Paragraph({ text: "", pageBreakBefore: true }),
-                    new docx.Paragraph({ text: "目次", heading: docx.HeadingLevel.HEADING_1 }),
-                    new docx.Paragraph({ children: [new docx.InternalHyperlink({ child: new docx.TextRun({ text: "▶ 本編を読み始める", color: "0000FF", underline: true }), anchor: "main" })] }),
-                    new docx.Paragraph({ text: "", pageBreakBefore: true }),
-                    new docx.Paragraph({ children: [new docx.BookmarkStart("main"), new docx.TextRun({ text: "【本文】", bold: true }), new docx.BookmarkEnd("main")] }),
-                    ...bodyText.split('\n').map(line => new docx.Paragraph({ text: line, spacing: { line: 400 } }))
+                    new docx.Paragraph({ text: "【本文】", bold: true }),
+                    ...body.split('\n').map(l => new docx.Paragraph({ text: l, spacing: { line: 400 } }))
                 ]
             }]
         });
-        docx.Packer.toBlob(doc).then(blob => { saveAs(blob, title + ".docx"); alert("成功！目次付きWordが射出されました。"); });
+        docx.Packer.toBlob(doc).then(blob => { saveAs(blob, title + ".docx"); alert("射出完了！"); });
     }
 </script>
 </body>
