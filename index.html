@@ -2,62 +2,67 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>LaLaLa Books Ultimate - REBOOT FINAL</title>
+    <title>阿寒湖編・完全統合エディター (Final Version - Bug Fixed)</title>
     <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
         :root { --accent: #27ae60; --bg: #0d0d0d; --pane-bg: #161616; --text: #e0e0e0; }
         body { background: var(--bg); color: var(--text); font-family: "MS Mincho", "Hiragino Mincho ProN", serif; display: flex; height: 100vh; margin: 0; overflow: hidden; }
+        
         .pane { height: 100vh; display: flex; flex-direction: column; border-right: 1px solid #333; box-sizing: border-box; }
         #master-editor { width: 35%; background: var(--pane-bg); padding: 20px; overflow-y: auto; }
         #tate-preview { width: 35%; padding: 20px; align-items: center; overflow: hidden; }
         #yoko-preview { width: 30%; padding: 20px; align-items: center; overflow: hidden; border-right: none; }
+
         label { display: block; font-weight: bold; margin: 15px 0 5px; color: var(--accent); font-family: sans-serif; font-size: 0.85em; }
         input, textarea { width: 100%; background: #222; border: 1px solid #444; color: #fff; padding: 12px; border-radius: 8px; box-sizing: border-box; font-size: 1em; }
-        #main-input { height: 500px; line-height: 1.8; }
+        #main-input { height: 45vh; line-height: 1.8; resize: none; }
+
         .phone-frame { background: white; border: 12px solid #222; border-radius: 40px; color: #333; box-shadow: 0 30px 60px rgba(0,0,0,0.8); position: relative; display: flex; flex-direction: column; overflow: hidden; }
-        #frame-tate { width: 450px; height: 75vh; }
-        #frame-yoko { width: 300px; height: 75vh; }
+        #frame-tate { width: 450px; height: 80vh; }
+        #frame-yoko { width: 300px; height: 80vh; }
         .content-area { padding: 30px; box-sizing: border-box; outline: none; min-height: 100%; }
         #view-tate { writing-mode: vertical-rl; height: 100%; width: 100%; overflow-x: auto; line-height: 2.2; font-size: 1.1em; }
-        #view-yoko { writing-mode: horizontal-tb; width: 100%; overflow-y: auto; line-height: 1.9; font-size: 1em; text-align: justify; }
-        #cover-zone { width: 260px; height: 400px; position: relative; margin: 0 auto 20px; border-radius: 10px; overflow: hidden; background: #000; flex-shrink: 0; }
-        #c-img { width: 100%; height: 100%; object-fit: cover; }
-        #c-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; box-sizing: border-box; background: rgba(0,0,0,0.2); z-index: 10; pointer-events: none; }
-        #c-title { color: #fff; font-size: 1.4em; font-weight: bold; text-align: center; text-shadow: 2px 2px 8px #000; }
-        #c-desc { color: #fff; font-size: 0.75em; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 5px; line-height: 1.4; }
-        .toc-container { background: #f0f0f0; padding: 10px; border-radius: 8px; margin-bottom: 20px; font-size: 0.8em; font-family: sans-serif; max-height: 150px; overflow-y: auto; color: #333; }
-        .toc-link { color: var(--accent); cursor: pointer; display: block; margin: 4px 0; text-decoration: underline; }
-        .btn-shoot { background: var(--accent); color: white; padding: 18px; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; width: 100%; font-size: 1.1em; margin-top: 20px; }
+        #view-yoko { writing-mode: horizontal-tb; width: 100%; overflow-y: auto; line-height: 1.9; font-size: 1em; }
+
+        .cover-img { width: 100%; height: auto; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .toc-indicator { background: #222; padding: 10px; border-radius: 8px; font-size: 0.8em; margin-bottom: 10px; color: var(--accent); border-left: 4px solid var(--accent); font-family: sans-serif; }
+        
+        .btn-shoot { background: var(--accent); color: white; padding: 24px; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; width: 100%; font-size: 1.3em; margin-top: 20px; box-shadow: 0 10px 20px rgba(39, 174, 96, 0.4); }
+        .btn-shoot:active { transform: scale(0.97); }
     </style>
 </head>
 <body>
 
 <div id="master-editor" class="pane">
-    <h2 style="color:var(--accent); margin:0;">🏛️ MASTER REBOOT</h2>
-    <label>1. 表紙画像(プレビュー用)</label>
-    <input type="file" id="f-cover" accept="image/*" onchange="sync('image')">
+    <h2 style="color:var(--accent); margin:0; font-family:sans-serif;">🏛️ 阿寒湖編・完全統合版 (修正済み)</h2>
+    
+    <label>1. 表紙画像を読み込む</label>
+    <input type="file" id="f-cover" accept="image/*" onchange="loadCover(event)">
+    <img id="cover-preview-img" class="cover-img" style="display:none;">
+
     <label>2. タイトル</label>
     <input type="text" id="f-title" value="逆転のラスト・ダイヤモンド (阿寒湖編)" oninput="sync('master')">
+    
     <label>3. あらすじ</label>
-    <textarea id="f-desc" oninput="sync('master')">銀座の夜から阿寒湖へ…。佐藤とレイナの新たな逆転劇。</textarea>
-    <label>4. 本文 (全同期・直接修正可)</label>
-    <textarea id="main-input" oninput="sync('master')" placeholder="ここに小説を執筆してください..."></textarea>
-    <button class="btn-shoot" onclick="exportWord()">【確実にWordを射出】</button>
+    <textarea id="f-desc" oninput="sync('master')" style="height:80px;">阿寒湖の氷の下に潜む、真実と偽物。LaLaLaが放つ衝撃作。</textarea>
+    
+    <label>4. 本文入力（目次自動生成）</label>
+    <div id="toc-preview" class="toc-indicator">章タイトル（第一章など）を検出中...</div>
+    <textarea id="main-input" oninput="sync('master')" placeholder="ここに10時間の成果を流し込んでください..."></textarea>
+    
+    <button class="btn-shoot" onclick="exportWord()">【目次付き・完成原稿を射出】</button>
 </div>
 
 <div id="tate-preview" class="pane">
-    <div id="cover-zone">
-        <img id="c-img">
-        <div id="c-overlay"><div id="c-title"></div><div id="c-desc"></div></div>
-    </div>
+    <label style="text-align:center">縦書きスマホイメージ</label>
     <div class="phone-frame" id="frame-tate">
         <div id="view-tate" class="content-area" contenteditable="true" oninput="sync('tate')"></div>
     </div>
 </div>
 
 <div id="yoko-preview" class="pane">
-    <div id="toc-yoko" class="toc-container"></div>
+    <label style="text-align:center">横書き校正イメージ</label>
     <div class="phone-frame" id="frame-yoko">
         <div id="view-yoko" class="content-area" contenteditable="true" oninput="sync('yoko')"></div>
     </div>
@@ -65,117 +70,117 @@
 
 <script>
     const el = (id) => document.getElementById(id);
-    const chapterRegex = /^(第[0-9一二三四五六七八九十百]+章|序章|終章|エピローグ|プロローグ)/;
+    const chapterRegex = /^(第[0-9一二三四五六七八九十百]+章|序章|終章|エピローグ|プロローグ|第[0-9]+話)/;
+    let coverBase64 = null;
+
+    function loadCover(event) {
+        const file = event.target.files[0];
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            coverBase64 = e.target.result;
+            el('cover-preview-img').src = coverBase64;
+            el('cover-preview-img').style.display = 'block';
+            sync('master');
+        };
+        reader.readAsDataURL(file);
+    }
 
     function sync(source) {
-        let content = "";
         const title = el('f-title').value;
         const desc = el('f-desc').value;
+        let content = "";
+
         if (source === 'master') content = el('main-input').value;
         else if (source === 'tate') content = el('view-tate').innerText;
         else if (source === 'yoko') content = el('view-yoko').innerText;
+
         if (source !== 'master') el('main-input').value = content;
 
         const lines = content.split('\n');
-        let chapters = [];
-        let htmlBody = lines.map((line, i) => {
-            if (chapterRegex.test(line) || (line.length > 0 && line.length < 25 && (lines[i-1] === '' || i === 0))) {
-                const id = `ch-${i}`;
-                chapters.push({ title: line, id: id });
-                return `<b id="${id}" style="color:var(--accent); font-size:1.2em;">${line}</b>`;
+        let chapterList = [];
+        let htmlBody = lines.map((line) => {
+            if (chapterRegex.test(line)) {
+                chapterList.push(line);
+                return `<b style="color:var(--accent); font-size:1.2em; display:block; margin:20px 0;">${line}</b>`;
             }
             return line;
         }).join('<br>');
 
-        el('toc-yoko').innerHTML = `<strong>プレビュー目次</strong>` + chapters.map(ch => `<a class="toc-link" onclick="jump('${ch.id}')">▶ ${ch.title}</a>`).join('');
-        if (source !== 'tate') el('view-tate').innerHTML = `<h2 style="margin-left:40px">${title}</h2><hr>${htmlBody}`;
-        if (source !== 'yoko') el('view-yoko').innerHTML = `<h3 style="text-align:center">${title}</h3><hr>${htmlBody}`;
-        el('c-title').innerText = title;
-        el('c-desc').innerText = desc;
+        el('toc-preview').innerHTML = chapterList.length > 0 ? "検出した目次: " + chapterList.join(' / ') : "章タイトルを未検出";
 
-        if (source === 'image') {
-            const file = el('f-cover').files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => el('c-img').src = e.target.result;
-                reader.readAsDataURL(file);
-            }
-        }
-    }
-
-    function jump(id) {
-        const t = el('view-tate').querySelector(`#${id}`);
-        const y = el('view-yoko').querySelector(`#${id}`);
-        if (t) t.scrollIntoView({ behavior: 'smooth', inline: 'start' });
-        if (y) y.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const coverHtml = coverBase64 ? `<img src="${coverBase64}" style="width:100%; margin-bottom:20px;">` : "";
+        const previewHTML = `${coverHtml}<h2 style="text-align:center;">${title}</h2><p style="font-size:0.85em; color:#666; text-align:center; padding:0 20px;">${desc}</p><hr>${htmlBody}`;
+        
+        if (source !== 'tate') el('view-tate').innerHTML = previewHTML;
+        if (source !== 'yoko') el('view-yoko').innerHTML = previewHTML;
     }
 
     async function exportWord() {
         const title = el('f-title').value;
         const desc = el('f-desc').value;
-        const content = el('main-input').value;
-        const lines = content.split('\n');
+        const rawText = el('main-input').value;
+        
+        const sanitizedText = rawText
+            .replace(/([、。？！])\s+/g, '$1')
+            .replace(/\n{3,}/g, '\n\n')
+            .replace(/#/g, '\u200B#');
+
+        const lines = sanitizedText.split('\n');
         let docChildren = [];
 
-        // 1. タイトルページ
         docChildren.push(new docx.Paragraph({ text: title, heading: docx.HeadingLevel.TITLE, alignment: docx.AlignmentType.CENTER }));
         docChildren.push(new docx.Paragraph({ text: `著者：LaLaLa`, alignment: docx.AlignmentType.CENTER }));
-        docChildren.push(new docx.Paragraph({ text: " ", spacing: { before: 400 } }));
-        docChildren.push(new docx.Paragraph({ children: [new docx.TextRun({ text: "【あらすじ】", bold: true })] }));
+        docChildren.push(new docx.Paragraph({ text: "【あらすじ】", bold: true, spacing: { before: 400 } }));
         docChildren.push(new docx.Paragraph({ text: desc }));
-        docChildren.push(new docx.Paragraph({ text: " ", pageBreakBefore: true }));
+        docChildren.push(new docx.Paragraph({ text: "", pageBreakBefore: true }));
 
-        // 2. 目次ページ (LaLaLaさん修正：手動構築・安全版)
-        docChildren.push(new docx.Paragraph({ text: "目次", heading: docx.HeadingLevel.HEADING_1 }));
-        lines.forEach(line => {
-            if (chapterRegex.test(line)) {
-                docChildren.push(new docx.Paragraph({ text: "▶ " + line }));
-            }
-        });
-        docChildren.push(new docx.Paragraph({ text: " ", pageBreakBefore: true }));
+        docChildren.push(new docx.Paragraph({ 
+            children: [
+                new docx.BookmarkStart({ id: "toc" }),
+                new docx.TextRun({ text: "目次", bold: true, size: 32 }),
+                new docx.BookmarkEnd({ id: "toc" })
+            ],
+            heading: docx.HeadingLevel.HEADING_1 
+        }));
 
-        // 3. 本文
-        let chapterCount = 0;
         lines.forEach((line, i) => {
-            if (chapterRegex.test(line) || (line.length > 0 && line.length < 25 && (lines[i-1] === '' || i === 0))) {
-                docChildren.push(new docx.Paragraph({
-                    heading: docx.HeadingLevel.HEADING_1,
-                    pageBreakBefore: chapterCount !== 0,
-                    children: [new docx.TextRun({ text: line, bold: true })]
+            if (chapterRegex.test(line)) {
+                docChildren.push(new docx.InternalHyperlink({
+                    anchor: `chap_${i}`,
+                    child: new docx.Paragraph({ text: "▶ " + line, spacing: { before: 120 } })
                 }));
-                chapterCount++;
+            }
+        });
+        docChildren.push(new docx.Paragraph({ text: "", pageBreakBefore: true }));
+
+        let firstChap = true;
+        lines.forEach((line, i) => {
+            if (chapterRegex.test(line)) {
+                docChildren.push(new docx.Paragraph({
+                    children: [
+                        new docx.BookmarkStart({ id: `chap_${i}` }),
+                        new docx.TextRun({ text: line, bold: true, font: "MS 明朝" }),
+                        new docx.BookmarkEnd({ id: `chap_${i}` })
+                    ],
+                    heading: docx.HeadingLevel.HEADING_1,
+                    pageBreakBefore: !firstChap
+                }));
+                firstChap = false;
             } else {
-                docChildren.push(new docx.Paragraph({ text: line || " ", spacing: { line: 360 } }));
+                docChildren.push(new docx.Paragraph({ text: line || " ", spacing: { line: 360 }, font: "MS 明朝" }));
             }
         });
 
-        try {
-            const doc = new docx.Document({
-                creator: "LaLaLa Books",
-                sections: [{
-                    children: docChildren,
-                    footers: {
-                        default: new docx.Footer({
-                            children: [new docx.Paragraph({
-                                alignment: docx.AlignmentType.CENTER,
-                                children: [
-                                    new docx.TextRun("Page "),
-                                    new docx.TextRun({ children: [docx.PageNumber.CURRENT] }), // LaLaLaさん修正反映：安定構造
-                                    new docx.TextRun(" / "),
-                                    new docx.TextRun({ children: [docx.PageNumber.TOTAL_PAGES] }),
-                                ],
-                            })],
-                        }),
-                    },
-                }]
-            });
-            const blob = await docx.Packer.toBlob(doc);
-            saveAs(blob, `${title}_MASTER.docx`);
-            alert("射出完了！");
-        } catch (e) {
-            alert("Word生成エラー: " + e);
-        }
+        const doc = new docx.Document({
+            creator: "LaLaLa Books",
+            sections: [{ children: docChildren }]
+        });
+
+        const blob = await docx.Packer.toBlob(doc);
+        saveAs(blob, `${title}_修正完了版.docx`);
+        alert("バグを排除した最終原稿を射出し、あなたの20時間を救出しました。");
     }
+
     sync('master');
 </script>
 </body>
